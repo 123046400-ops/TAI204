@@ -1,8 +1,11 @@
 #importaciones
 from fastapi import FastAPI,status,HTTPException
 import asyncio
-from typing import Optional 
+from typing import Optional
+from pydantic import BaseModel ,Field
+from typing import Optional
 
+    
 #instancias
 app = FastAPI(
     title= "Mi primera API",
@@ -10,6 +13,11 @@ app = FastAPI(
     version="1.0"
 )
 
+#modelos de validacion de pydantic
+class crear_usuario(BaseModel):
+    id: int=Field(...,gt = 0, description= "Identificador de usuario")
+    nombre: str = Field(..., min_length=3, max_length=50, example=" Juanito Doe")
+    edad: int = Field(..., gt=1, le=125, description="Edad validad entre 1 y 125")
 
 #tabla ficticia
 usuarios=[
@@ -53,20 +61,20 @@ async def consultaT():
         "usuarios": usuarios
     }
 
-@app.post("/v1/usuarios/{id}",tags=['CRUD HTTP'])
-async def agregar_usuario(usuario:dict): #recibe un diccionario con los datos del nuevo usuario
+@app.post("/v1/usuarios/", tags=['CRUD HTTP'])
+async def crear_usuario(usuario: crear_usuario):
     for usr in usuarios:
-        if usr["id"] == usuario.get("id"):
-            raise HTTPException(
-                status_code= 400,
-                detail="El ID ya existe"
-            )
-    usuarios.append(usuario)
+         if usr["id"] == usuario.id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El id ya existe"
+                )
+    usuarios.append(usuario) 
     return{
-        "mensaje": "Usuario agregado",
-        "usuario": usuario,
-        "status": "200"
-    }        
+     "mensaje": "Usuario agregado",
+     "usuario": usuario,
+       "status": "200"
+  }   
 
 @app.put("/v1/usuarios/{id}", tags=['CRUD HTTP'])
 async def actualizar_usuario(id: int, usuario: dict):  
@@ -103,3 +111,17 @@ async def eliminar_usuario(id: int):
         detail="Usuario no encontrado"
     )
 
+    @app.post("/v1/usuarios/", tags=['CRUD HTTP'])
+    async def crear_usuario(usuario: crear_usuario):
+        for usr in usuarios:
+            if usr["id"] == usuario.id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El id ya existe"
+                )
+        usuarios.append(usuario) 
+        return{
+            "mensaje": "Usuario agregado",
+            "usuario": usuario,
+            "status": "200"
+        }   

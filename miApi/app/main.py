@@ -1,12 +1,7 @@
 #importaciones
-from fastapi import FastAPI,status,HTTPException,Depends 
-import asyncio
-from typing import Optional
-from pydantic import BaseModel ,Field
-from typing import Optional
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets
-    
+from fastapi import FastAPI
+from  app.routers import usuarios,varios
+
 #instancias(servidor)
 app = FastAPI(
     title= "Mi primera API",
@@ -14,133 +9,9 @@ app = FastAPI(
     version="1.0"
 )
 
-#modelos de validacion de pydantic
-class crear_usuario(BaseModel):
-    id: int=Field(...,gt = 0, description= "Identificador de usuario")
-    nombre: str = Field(..., min_length=3, max_length=50, example=" Juanito Doe")
-    edad: int = Field(..., gt=1, le=125, description="Edad validad entre 1 y 125")
-
-#Seguridad con HTTP Basic (practica6)
-
-security= HTTPBasic()
-
-def verificar_peticion(credenciales: HTTPBasicCredentials = Depends(security)):
-    usuarioAut = secrets.compare_digest(credenciales.username, "Lupita")
-    contraAuth = secrets.compare_digest(credenciales.password, "123456")
-
-    if not (usuarioAut and contraAuth):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales no autorizadas",
-        )
-
-    return credenciales.username
-    
+#Router de Endpoints disponibles
+app.include_router(usuarios.router)
+app.include_router(varios.routerv)
 
 
-#tabla ficticia
-usuarios=[
-    {"id":1,"nombre":"Diego","edad":21},
-    {"id":2,"nombre":"Coral","edad":21},
-    {"id":3,"nombre":"Saul","edad":21},
-]
 
-#endpoints
-@app.get("/",tags=['Inicio'])
-async def bienvenido():
-    return {"mensaje": "¡Bienvenido a  FastAPI"}
-             
-@app.get("/hola mundo",tags=['Asincronia'])
-async def bienvenido():
-    await asyncio.sleep(5) #peticion,consultaDB,Archivo
-    return {"mensaje": "¡Hola Mundo FastAPI",
-          "sataus" :"200" }
-
-@app.get("/v1/ParametroOb/{id}",tags=['Parametro Obligatorio'])
-async def consultauno(id:int):
-    return {"mensaje": "usuario encontrado",
-            "usuario":id,
-             "status":"200" }
-
-@app.get("/v1/ParametroOp/",tags=['Parametro Opcional'])
-async def consultatodos(id:Optional[int]=None):
-    if id is not None:
-         for usuarioK in usuarios:
-             if usuarioK["id"] == id:
-                 return{"mensaje":"usuario encontrado","usuario":usuarioK}
-         return{"mensaje":"usuario no encontrado","status":"200"}  
-    else:
-        return{"mensaje":"No se proporciono id","status":"200"}   
-    
-@app.get("/v1/usuarios/{id}",tags=['CRUD HTTP'])
-async def consultaT():
-    return{
-        "status": "200",
-        "total": len(usuarios),
-        "usuarios": usuarios
-    }
-
-@app.post("/v1/usuarios/", tags=['CRUD HTTP'])
-async def crear_usuario(usuario: crear_usuario):
-    for usr in usuarios:
-         if usr["id"] == usuario.id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="El id ya existe"
-                )
-    usuarios.append(usuario) 
-    return{
-     "mensaje": "Usuario agregado",
-     "usuario": usuario,
-       "status": "200"
-  }   
-
-@app.put("/v1/usuarios/{id}", tags=['CRUD HTTP'])
-async def actualizar_usuario(id: int, usuario: dict):  
-    for usr in usuarios:
-        if usr["id"] == id:
-            usr["nombre"] = usuario.get("nombre")
-            usr["edad"] = usuario.get("edad")
-            
-            return {
-                "mensaje": "Usuario actualizado",
-                "usuario": usr,
-                "status": "200"
-            }
-
-    raise HTTPException(
-        status_code=404,
-        detail="Usuario no encontrado"
-    )
-
-
-@app.delete("/v1/usuarios/{id}", tags=['CRUD HTTP'])
-async def eliminar_usuario(id: int,usuarioAuth:str = Depends(verificar_peticion)):  
-    for usr in usuarios:
-        if usr["id"] == id:
-            usuarios.remove(usr)
-            return {
-                "mensaje": f"Usuario eliminado por {usuarioAuth}",
-                "usuario": usr,
-                "status": "200"
-            }
-
-    raise HTTPException(
-        status_code=404,
-        detail="Usuario no encontrado"
-    )
-
-    @app.post("/v1/usuarios/", tags=['CRUD HTTP'])
-    async def crear_usuario(usuario: crear_usuario):
-        for usr in usuarios:
-            if usr["id"] == usuario.id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="El id ya existe"
-                )
-        usuarios.append(usuario) 
-        return{
-            "mensaje": "Usuario agregado",
-            "usuario": usuario,
-            "status": "200"
-        }   

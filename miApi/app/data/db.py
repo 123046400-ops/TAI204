@@ -14,5 +14,16 @@ SessionLocal= sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
+)
 
-    ,)
+#4. Base declarativa para Modelo
+Base= declarative_base()
+
+#5 funcion que trabajar sesiones con la speticiones
+
+def get_db():
+    db= SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

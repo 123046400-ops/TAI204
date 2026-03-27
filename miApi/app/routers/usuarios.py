@@ -21,8 +21,21 @@ async def consultaT(db: Session= Depends(get_db)):
         "usuarios": queryUsuario
     }
 
+@router.get("/{id}",status_code=status.HTTP_200_OK)
+async def consultaId(id: int,db: Session= Depends(get_db)):
+    queryUsuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
+    if not queryUsuario:
+        raise HTTPException(
+            status_code=404,
+            detail= "Usuario no encontrado"
+        )
+    return{
+        "usuarios": queryUsuario
+    }
+
+
 @router.post("/",status_code=status.HTTP_201_CREATED)
-async def crear_usuario(usuarioP: crear_usuario,db: Session= Depends(get_db)):
+async def agregar_usuario(usuarioP: crear_usuario,db: Session= Depends(get_db)):
     usuarioNuevo= usuarioDB(nombre= usuarioP.nombre, edad= usuarioP.edad) 
     db.add(usuarioNuevo)
     db.commit()
@@ -36,38 +49,58 @@ async def crear_usuario(usuarioP: crear_usuario,db: Session= Depends(get_db)):
   }   
 
 @router.put("/{id}")
-async def actualizar_usuario(id: int, usuario: dict):  
-    for usr in usuarios:
-        if usr["id"] == id:
-            usr["nombre"] = usuario.get("nombre")
-            usr["edad"] = usuario.get("edad")
-            
-            return {
-                "mensaje": "Usuario actualizado",
-                "usuario": usr,
-                "status": "200"
-            }
+async def actualizarUsuario(id: int, usuarioP: crear_usuario, db: Session = Depends(get_db)):
+    usuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
 
-    raise HTTPException(
-        status_code=404,
-        detail="Usuario no encontrado"
-    )
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    usuario.nombre = usuarioP.nombre
+    usuario.edad = usuarioP.edad
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "status": "200",
+        "mensaje": "Usuario actualizado",
+        "usuario": usuario
+    }
 
 
-@router.delete("/{id}")
-async def eliminar_usuario(id: int,usuarioAuth:str = Depends(verificar_peticion)):  
-    for usr in usuarios:
-        if usr["id"] == id:
-            usuarios.remove(usr)
-            return {
-                "mensaje": f"Usuario eliminado por {usuarioAuth}",
-                "usuario": usr,
-                "status": "200"
-            }
+@router.patch("/{id}",status_code=status.HTTP_200_OK)
+async def actualizarParcial(id: int, usuarioP: crear_usuario, db: Session = Depends(get_db)):
+    queryUsuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
 
-    raise HTTPException(
-        status_code=404,
-        detail="Usuario no encontrado"
-    )
+    if not queryUsuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if usuarioP.nombre:
+        queryUsuario.nombre = usuarioP.nombre
+    if usuarioP.edad:
+        queryUsuario.edad = usuarioP.edad
+    db.commit()
+    db.refresh(queryUsuario)
+
+    return {
+        "mensaje": "Usuario actualizado parcialmente",
+        "usuario": queryUsuario
+    }
+
+@router.delete("/{id}",status_code=status.HTTP_200_OK)
+async def eliminarUsuario(id: int, usuarioAuth: str = Depends(verificar_peticion), db: Session = Depends(get_db)):
+    queryUsuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
+
+    if not queryUsuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    db.delete(queryUsuario)
+    db.commit()
+
+    return {
+        "mensaje": f"Usuario eliminado por {usuarioAuth}",
+    }
+
+
+
 
     

@@ -48,7 +48,7 @@ async def agregar_usuario(usuarioP: crear_usuario,db: Session= Depends(get_db)):
        
   }   
 
-@router.put("/{id}")
+@router.put("/{id}",status_code=status.HTTP_200_OK)
 async def actualizarUsuario(id: int, usuarioP: crear_usuario, db: Session = Depends(get_db)):
     usuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
 
@@ -61,28 +61,25 @@ async def actualizarUsuario(id: int, usuarioP: crear_usuario, db: Session = Depe
     db.refresh(usuario)
 
     return {
-        "status": "200",
         "mensaje": "Usuario actualizado",
         "usuario": usuario
     }
 
 
-@router.patch("/{id}",status_code=status.HTTP_200_OK)
-async def actualizarParcial(id: int, usuarioP: crear_usuario, db: Session = Depends(get_db)):
+@router.patch("/{id}", status_code=status.HTTP_200_OK)
+async def actualizar_usuario_parcial(id: int, usuarioP: dict, db: Session = Depends(get_db)):
     queryUsuario = db.query(usuarioDB).filter(usuarioDB.id == id).first()
-
-    if not queryUsuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    if usuarioP.nombre:
-        queryUsuario.nombre = usuarioP.nombre
-    if usuarioP.edad:
-        queryUsuario.edad = usuarioP.edad
+    if queryUsuario is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Usuario no encontrado"
+        )
+    for campo, valor in usuarioP.items():
+        setattr(queryUsuario, campo, valor)
     db.commit()
     db.refresh(queryUsuario)
-
     return {
-        "mensaje": "Usuario actualizado parcialmente",
+        "mensaje": "Usuario se actualizo parcialmente",
         "usuario": queryUsuario
     }
 
